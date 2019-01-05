@@ -13,7 +13,7 @@
 ```bash
 $ git clone https://github.com/YanHaoChen/TRSchedule.git
 $ cd TRSchedule
-$ go build TRSchedule.go
+$ go build .
 ```
 
 ## 使用教學
@@ -31,19 +31,23 @@ $ TRSchedule
 
 1. 查詢當天從臺中(1319)到新烏日(1324)的車班。
 
-        $ TRSchedule -from=1319 -to=1324
+	TRSchedule -from=1319 -to=1324
+
+或者：
+
+	TRSchedule -from=臺中 -to=新烏日
 
 2. 查詢指定日期從臺中(1319)到新烏日(1324)的車班。
 
-        $ TRSchedule -date=2019-01-01 -from=1319 -to=1324
+	TRSchedule -date=2019-01-01 -from=1319 -to=1324
 
 3. 查詢指定日期及出發時間（下午兩點至四點）從臺中(1319)到新烏日(1324)的車班。
 
-        $ TRSchedule -date=2019-01-01 -start=1400 -end=1600 -from=1319 -to=1324
+	TRSchedule -date=2019-01-01 -start=1400 -end=1600 -from=1319 -to=1324
 
 4. 查詢指定日期及到達時間（下午兩點至四點）從臺中(1319)到新烏日(1324)的車班。(type 預設為 1 ，也就是查詢出發時間。)
 
-        $ TRSchedule -date=2019-01-01 -start=1400 -end=1600 -type=2 -from=1319 -to=1324
+	TRSchedule -date=2019-01-01 -start=1400 -end=1600 -type=2 -from=1319 -to=1324
 ```
 
 ## 範例

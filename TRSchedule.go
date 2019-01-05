@@ -14,36 +14,33 @@ import (
 	"time"
 )
 
-type Train struct {
-	Train_Code           string
-	Class_Code           string
-	Begin_Code           string
-	Begin_Name           string
-	Begin_EName          string
-	End_Code             string
-	End_Name             string
-	End_EName            string
-	Over_Night           string
-	Direction            string
-	MainViaRoad          string
-	Handicapped          string
-	Package              string
-	Dining               string
-	TrainType            string
-	From_Departure_Time  string
-	To_Arrival_Time      string
-	Fare                 int
-	Comment              string
-	Discount_Price_Adult string
-	Discount_Begin_Date  string
-	Discount_End_Date    string
-	From_Ticket_Code     string
-	To_Ticket_Code       string
-	Everyday             string
-	TicketLink           string
-}
-
 func main() {
+
+	trainClass := map[string]string{
+		"1100": "  自強",
+		"1101": "  自強",
+		"1103": "  自強",
+		"1108": "  自強",
+		"1109": "  自強",
+		"110A": "  自強",
+		"110B": "  自強",
+		"110C": "  自強",
+		"110D": "  自強",
+		"110E": "  自強",
+		"110F": "  自強",
+		"1102": "太魯閣",
+		"1107": "普悠瑪",
+		"1110": "  莒光",
+		"1111": "  莒光",
+		"1114": "  莒光",
+		"1115": "  莒光",
+		"1120": "  復興",
+		"1130": "  電車",
+		"1131": "區間車",
+		"1132": "區間快",
+		"1140": "普快車",
+		"1141": "柴快車",
+		"1151": "普通車"}
 
 	if len(os.Args) < 2 {
 		showExample()
@@ -65,7 +62,6 @@ func main() {
 	const RFC3339FullDate = "2006-01-02"
 	const ReservationDate = "2006/01/02"
 
-	// t, _ := time.Parse(RFC3339FullDate, "2018-01-01")
 	t := time.Now()
 	searchDate := flag.String("date", t.Format(RFC3339FullDate), "Date")
 	fromStation := flag.String("from", "None", "From station")
@@ -75,10 +71,41 @@ func main() {
 	timeType := flag.String("type", "1", "Start(1) or arriving(2)")
 	flag.Parse()
 
-	if *fromStation == "None" || *toStation == "None" {
-		fmt.Println("請輸入起迄站代號。")
+	// Get codes of stations
+	stationCodeMap := getStationCode()
+
+	if stationCodeMap == nil {
+		fmt.Println("無法取得車站代號。")
 		return
 	}
+
+	if *fromStation == "None" || *toStation == "None" {
+		fmt.Println("請輸入起迄站。")
+		return
+	}
+
+	codeOfFrom, foundFrom := stationCodeMap[*fromStation]
+	codeOfTo, foundTo := stationCodeMap[*toStation]
+
+	if !foundFrom {
+		println("起站名稱有誤。")
+		return
+	} else {
+		_, err := strconv.Atoi(codeOfFrom)
+		if err != nil {
+			codeOfFrom = *fromStation
+		}
+	}
+	if !foundTo {
+		println("迄站名稱有誤。")
+		return
+	} else {
+		_, err := strconv.Atoi(codeOfTo)
+		if err != nil {
+			codeOfTo = *toStation
+		}
+	}
+
 	startInt, err := strconv.Atoi(*start)
 	if startInt > 2359 || startInt < 0 || err != nil {
 		fmt.Println("起始時間有誤。")
@@ -98,9 +125,9 @@ func main() {
 	}
 
 	values := url.Values{
-		"FromStation":     {*fromStation},
+		"FromStation":     {codeOfFrom},
 		"FromStationName": {"0"},
-		"ToStation":       {*toStation},
+		"ToStation":       {codeOfTo},
 		"ToStationName":   {"0"},
 		"TrainClass":      {"2"},
 		"searchdate":      {*searchDate},
@@ -137,34 +164,6 @@ func main() {
 		fmt.Println("沒有對應的火車。")
 		return
 	}
-
-	trainClass := map[string]string{
-		"1100": "自強",
-		"1101": "  自強",
-		"1103": "  自強",
-		"1108": "  自強",
-		"1109": "  自強",
-		"110A": "  自強",
-		"110B": "  自強",
-		"110C": "  自強",
-		"110D": "  自強",
-		"110E": "  自強",
-		"110F": "  自強",
-		"1102": "太魯閣",
-		"1107": "普悠瑪",
-		"1110": "  莒光",
-		"1111": "  莒光",
-		"1114": "  莒光",
-		"1115": "  莒光",
-		"1120": "  復興",
-		"1130": "  電車",
-		"1131": "區間車",
-		"1132": "區間快",
-		"1140": "普快車",
-		"1141": "柴快車",
-		"1151": "普通車"}
-
-	const allTwoWordInterface = "|%s|%8s|%12s|%12s|%10s|%10s|%10s|%8d|\n"
 
 	fmt.Printf("|%s|%6s|%12s|%12s|%6s|%6s|%9s|%6s|\n", "  車種", "車次", "啟站", "終站", "發車時間", "到達時間", "行駛時間", "票價")
 	fmt.Printf("--------------------------------------------------------------------------------------------\n")
@@ -244,6 +243,8 @@ func showExample() {
 		"\n使用範例如下：\n" +
 		"\n1. 查詢當天從臺中(1319)到新烏日(1324)的車班。\n" +
 		"\n\tTRSchedule -from=1319 -to=1324\n" +
+		"\n或者：\n" +
+		"\n\tTRSchedule -from=臺中 -to=新烏日\n" +
 		"\n2. 查詢指定日期從臺中(1319)到新烏日(1324)的車班。\n" +
 		"\n\tTRSchedule -date=2019-01-01 -from=1319 -to=1324\n" +
 		"\n3. 查詢指定日期及出發時間（下午兩點至四點）從臺中(1319)到新烏日(1324)的車班。\n" +
