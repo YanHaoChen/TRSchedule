@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 )
 
 const TR_MAIN_URL = "http://twtraffic.tra.gov.tw/twrail/"
@@ -54,29 +56,59 @@ type Station struct {
 	CityCode        string
 }
 
-func getStationCode() map[string]string {
+func getStationCode() (map[string]string, map[string][]string) {
 	stationMap := make(map[string]string)
+	stationList := make(map[string][]string)
 	values := url.Values{
 		"datatype": {"station"},
 		"language": {"tw"}}
 	resp, err := http.PostForm(TR_MAIN_URL+"Services/BaseDataServ.ashx", values)
 	if nil != err {
 		fmt.Println("errorination happened getting the response", err)
-		return nil
+		return nil, nil
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if nil != err {
 		fmt.Println("errorination happened reading the body", err)
-		return nil
+		return nil, nil
 	}
 	stringBody := string(body)
 	res := []Station{}
 	_ = json.Unmarshal([]byte(stringBody), &res)
-
 	for _, stationIns := range res {
 		stationMap[stationIns.Station_Name] = stationIns.Station_Code
 		stationMap[stationIns.Station_Code] = stationIns.Station_Name
+		stationList[stationIns.CityCode] = append(stationList[stationIns.CityCode], stationIns.Station_Name+": "+stationIns.Station_Code)
 	}
-	return stationMap
+	return stationMap, stationList
+}
+
+func findMatchingTrains(values url.Values) []Train {
+	resp, err := http.PostForm("http://twtraffic.tra.gov.tw/twrail/TW_SearchResult.aspx", values)
+
+	if nil != err {
+		fmt.Println("errorination happened getting the response", err)
+		return nil
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+
+	if nil != err {
+		fmt.Println("errorination happened reading the body", err)
+		return nil
+	}
+	stringBody := string(body)
+	stringBody = strings.Replace(stringBody, "\r\n", " ", -1)
+	stringBody = strings.Replace(stringBody, " ", "", -1)
+
+	r, _ := regexp.Compile("JSONData=(.*)\\]")
+	stringBody = r.FindString(stringBody)
+	stringBody = strings.Replace(stringBody, "JSONData=", "", -1)
+
+	res := []Train{}
+	_ = json.Unmarshal([]byte(stringBody), &res)
+
+	return res
 }
